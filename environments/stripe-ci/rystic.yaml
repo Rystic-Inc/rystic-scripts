@@ -1,0 +1,4 @@
+version: 1
+project: stripe-ci
+services:
+  stripe: {product: stripe-twin, version: 0.0.8, port: 8080, scenario: design_studio}

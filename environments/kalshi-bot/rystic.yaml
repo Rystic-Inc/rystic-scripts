@@ -1,0 +1,5 @@
+version: 1
+project: kalshi-bot
+services:
+  exchange: {product: kalshi-twin, version: 0.0.37, port: 8080, scenario: thin_book}
+  exchange-crash: {product: kalshi-twin, version: 0.0.37, port: 8081, scenario: flash_crash}

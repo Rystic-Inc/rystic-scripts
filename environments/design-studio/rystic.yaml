@@ -1,0 +1,9 @@
+version: 1
+project: design-studio
+services:
+  stripe: {product: stripe-twin, version: 0.0.8, port: 8080, scenario: design_studio}
+  paypal: {product: paypal-twin, version: 0.0.6, port: 8081, scenario: design_studio}
+  slack: {product: slack-twin, version: 0.0.16, port: 8082, scenario: design_studio}
+  resend: {product: resend-twin, version: 0.0.5, port: 8083, scenario: design_studio}
+  okta: {product: okta-twin, version: 0.0.1, port: 8084, scenario: design_studio}
+  lob: {product: lob-twin, version: 0.0.6, port: 8085, scenario: design_studio}

@@ -1,0 +1,6 @@
+version: 1
+project: coding-agent
+services:
+  github: {product: github-pulls-twin, version: 0.0.10, port: 8080, scenario: github-pulls_bot_pr_queue}
+  linear: {product: linear-twin, version: 0.0.1, port: 8081, scenario: linear_triage_inbox}
+  slack: {product: slack-twin, version: 0.0.16, port: 8082, scenario: design_studio}
