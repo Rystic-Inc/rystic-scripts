@@ -1,15 +1,15 @@
 #!/bin/bash
 # The shipped smoke requires only curl and a placeholder bearer token, so a
-# customer can verify the archive without installing an SDK (RYS-1947).
+# customer can verify the archive without installing an SDK.
 cd "$(dirname "$0")" || exit 1
 
 [ -f ./notion-twin ] || { echo "✗ notion-twin binary not found next to check.sh"; exit 1; }
 # Only if it needs it: inside the released image the binary is already
-# executable and owned by root while this runs as `rystic`. (RYS-1548)
+# executable and owned by root while this runs as `rystic`.
 [ -x ./notion-twin ] || chmod +x ./notion-twin
 
 # The twin's log lives in a private directory, never at a fixed path a
-# shared host could have planted a symlink at; the trap removes it. (RYS-1548)
+# shared host could have planted a symlink at; the trap removes it.
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/notion-twin-check.XXXXXX") || exit 1
 LOG="$WORK/notion-twin.log"
 TWIN_PID=""
@@ -24,7 +24,7 @@ fail() {
 }
 
 # A released build refuses to boot without a credential: resolve it as the CLI
-# does, and export both builds' variables since each ignores the other's (RYS-1204).
+# does, and export both builds' variables since each ignores the other's.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)
@@ -38,14 +38,14 @@ if [ -z "${RYSTIC_LICENSE:-}" ]; then
     [ -f "$candidate" ] && { export RYSTIC_LICENSE="$candidate"; break; }
   done
 fi
-# A note, not a failure: an unstamped snapshot boots with neither. (RYS-1204)
+# A note, not a failure: an unstamped snapshot boots with neither.
 [ -n "${RYSTIC_TOKEN:-}${RYSTIC_LICENSE:-}" ] || echo "note: no API key or license found — fine for an unstamped build; a released build refuses to boot without one (rystic login rys_…)"
 
 # Where to serve: the address given, else a loopback port the kernel hands
 # out. Either way readiness is held to the twin this script started — its
 # banner names the address it bound and its model hash, its pid must be
 # alive, and /_rystic/version there must report that hash — so a port some
-# other server holds can never pass as this twin (RYS-1444).
+# other server holds can never pass as this twin.
 #   bash check.sh                   # a free port, printed at the end
 #   bash check.sh localhost:18080   # serve there instead
 BIND="${1:-127.0.0.1:0}"
@@ -128,7 +128,7 @@ trashed=$(notion DELETE "/v1/blocks/$PAGE") || fail "trashing the page rejected"
 echo "$trashed" | grep -q '"in_trash":true' || fail "trashing the page answered: ${trashed:0:300}"
 
 curl -sf --noproxy '*' -X POST "http://$ADDR/_rystic/reset" > /dev/null || fail "reset failed"
-# Free reset restores the wiki but forbids scenario loading; paid reset clears it (RYS-1947).
+# Free reset restores the wiki but forbids scenario loading; paid reset clears it.
 restored=$(notion GET /v1/users/me -w ' %{http_code}') || fail "users/me after reset rejected"
 case "$restored" in
   *'"name":"Wiki Reader"'*' 200') ;;
@@ -145,8 +145,8 @@ case "$restored" in
 esac
 
 # The twin stays up on purpose, so there is something to point a client at.
-# RYSTIC_CHECK_STOP=1 stops it, for callers such as `release build -smoke`
-# that run this unattended.
+# RYSTIC_CHECK_STOP=1 stops it, for callers that run this unattended, such
+# as CI.
 if [ "${RYSTIC_CHECK_STOP:-0}" = 1 ]; then
   kill "$TWIN_PID" 2>/dev/null
   wait "$TWIN_PID" 2>/dev/null

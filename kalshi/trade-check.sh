@@ -2,7 +2,7 @@
 # Trade smoke test — run with the twin already running (bash check.sh first).
 # Seeds a resting book, crosses it with a fill-or-kill order, asserts the
 # fill, position, book depletion, and WS egress. Needs Pro or Enterprise: it
-# seeds and reads the egress log (RYS-1204). Usage: bash trade-check.sh [host:port]
+# seeds and reads the egress log. Usage: bash trade-check.sh [host:port]
 BASE=${1:-localhost:8080}
 fail() { echo "✗ $1"; exit 1; }
 j() { curl -sf -H "Content-Type: application/json" "$@"; }

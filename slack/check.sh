@@ -28,7 +28,7 @@ fail() {
 # serves under an API key: $RYSTIC_TOKEN, then config.json's token, then the
 # key `rystic login rys_…` stored. The Enterprise build reads a license:
 # $RYSTIC_LICENSE (a path, or the license itself in a container), then
-# ./rystic-license.json, then the CLI's activated copy in $RYSTIC_HOME (RYS-1204).
+# ./rystic-license.json, then the CLI's activated copy in $RYSTIC_HOME.
 RYSTIC_DIR="${RYSTIC_HOME:-$HOME/.rystic}"
 edition=$(./slack-twin --version 2> /dev/null | sed -n 's/^edition: //p')
 if [ "$edition" = metered ]; then
@@ -77,7 +77,7 @@ done
 curl -sf --connect-timeout 1 --max-time 2 "$ADDR/_rystic/version" | grep -q model_hash || fail "twin not responding on $ADDR"
 
 # No Slack app is needed or wanted: no method checks a token's value. The
-# prefix matters — the model reads the credential kind off it, the way Slack
+# prefix matters — the twin reads the credential kind off it, the way Slack
 # does — so the check sends the shape a real client would. Free boots
 # design_studio and Pro an empty workspace; the round trip works in both.
 AUTH="Authorization: Bearer xoxb-placeholder"

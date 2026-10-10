@@ -4,12 +4,16 @@ a bid and an ask resting at the same time, no crossed order and no fill on a
 static book, a clean exit with nothing left resting. Then runs every file under
 variants/ and holds each to the opposite: it never rests both sides.
 
-    python3 test_bot.py                       # builds ./public-apis/kalshi/sim, boots tight_book
+    python3 test_bot.py                       # boots the kalshi-twin `rystic pull` installed
     KALSHI_BASE_URL=http://localhost:8080 python3 test_bot.py   # a twin already running
-    KALSHI_TWIN_BIN=~/.rystic/twins/kalshi-twin/current/kalshi-twin python3 test_bot.py
+    KALSHI_TWIN_BIN=./kalshi-twin python3 test_bot.py           # boots this binary
 
-The scenario is tight_book (KXDEMO-26-A, 0.39 / 0.40, 25 a side). The twin is
-reset to it before every bot, through POST /_rystic/scenario.
+A twin this script boots gets the credential check.sh would find: $RYSTIC_TOKEN
+or the key `rystic login` stored, $RYSTIC_LICENSE or a rystic-license.json.
+
+The scenario is tight_book (KXDEMO-26-A, 0.39 / 0.40, 25 a side), which needs a
+Pro or Enterprise plan. The twin is reset to it before every bot, through
+POST /_rystic/scenario.
 """
 import json
 import os
@@ -23,7 +27,7 @@ import unittest
 import urllib.request
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+RYSTIC_HOME = pathlib.Path(os.environ.get("RYSTIC_HOME") or pathlib.Path.home() / ".rystic")
 TICKER = "KXDEMO-26-A"
 SCENARIO = "tight_book"
 BOT_SECONDS = float(os.environ.get("BOT_TEST_SECONDS", "30"))
@@ -48,43 +52,82 @@ def free_port():
         return s.getsockname()[1]
 
 
+def twin_binary():
+    """KALSHI_TWIN_BIN, else the version `rystic pull kalshi-twin` marked current."""
+    if os.environ.get("KALSHI_TWIN_BIN"):
+        return os.path.expanduser(os.environ["KALSHI_TWIN_BIN"])
+    product = RYSTIC_HOME / "twins" / "kalshi-twin"
+    try:
+        version = (product / "current").read_text().strip()
+    except OSError:
+        raise RuntimeError("no kalshi-twin to test against: set KALSHI_BASE_URL to a running "
+                           "twin or KALSHI_TWIN_BIN to a binary, or run `rystic pull kalshi-twin`")
+    return str(product / version / "kalshi-twin")
+
+
+def twin_env(port):
+    """A released twin refuses to boot without a credential, and each build reads
+    only its own variable, so both are resolved and passed when found."""
+    env = {**os.environ, "RYSTIC_ADDR": f":{port}"}
+    if not env.get("RYSTIC_TOKEN"):
+        token = ""
+        try:
+            token = json.loads((RYSTIC_HOME / "config.json").read_text()).get("token") or ""
+        except (OSError, ValueError, AttributeError):
+            pass
+        if not token:
+            try:
+                token = (RYSTIC_HOME / "token").read_text().strip()
+            except OSError:
+                pass
+        if token:
+            env["RYSTIC_TOKEN"] = token
+    if not env.get("RYSTIC_LICENSE"):
+        for candidate in (pathlib.Path("rystic-license.json"), RYSTIC_HOME / "rystic-license.json"):
+            if candidate.is_file():
+                env["RYSTIC_LICENSE"] = str(candidate.resolve())
+                break
+    return env
+
+
 class Twin:
     """The kalshi-twin under test: an already-running one when KALSHI_BASE_URL
-    is set, otherwise a binary (KALSHI_TWIN_BIN, or built from this repo)."""
+    is set, otherwise a binary this class boots and stops (see twin_binary)."""
 
     def __init__(self):
         self.proc = None
-        self.tmp = None
+        self.log = None
         self.base = os.environ.get("KALSHI_BASE_URL", "").rstrip("/")
 
     def start(self):
         if self.base:
             return
-        binary = os.environ.get("KALSHI_TWIN_BIN")
-        if not binary:
-            self.tmp = tempfile.TemporaryDirectory()
-            binary = str(pathlib.Path(self.tmp.name, "kalshi-twin"))
-            subprocess.run(["go", "build", "-o", binary, "./public-apis/kalshi/sim"],
-                           cwd=ROOT, check=True)
+        binary = twin_binary()
         port = free_port()
         self.base = f"http://127.0.0.1:{port}"
-        self.proc = subprocess.Popen([binary], env={**os.environ, "RYSTIC_ADDR": f":{port}"},
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.log = tempfile.TemporaryFile()
+        self.proc = subprocess.Popen([binary], env=twin_env(port),
+                                     stdout=self.log, stderr=subprocess.STDOUT)
         for _ in range(100):
+            if self.proc.poll() is not None:
+                break
             try:
                 if http("GET", self.base + "/_rystic/version")[0] == 200:
                     return
             except OSError:
                 pass
             time.sleep(0.1)
-        raise RuntimeError("kalshi-twin did not serve")
+        self.log.seek(0)
+        tail = self.log.read()[-600:].decode(errors="replace")
+        self.stop()
+        raise RuntimeError(f"{binary} did not serve on {self.base}:\n{tail}")
 
     def stop(self):
         if self.proc:
             self.proc.terminate()
             self.proc.wait(timeout=10)
-        if self.tmp:
-            self.tmp.cleanup()
+        if self.log:
+            self.log.close()
 
     def reset(self):
         status, _ = http("POST", self.base + "/_rystic/scenario", {"name": SCENARIO})
