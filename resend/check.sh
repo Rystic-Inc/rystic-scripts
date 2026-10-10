@@ -1,5 +1,5 @@
 #!/bin/bash
-# Exercise the archive's binary through email and webhook CRUD. (RYS-1028)
+# Exercise the archive's binary through email and webhook CRUD.
 set -euo pipefail
 cd "$(dirname "$0")"
 [ -x ./resend-twin ] || { echo "resend-twin executable missing next to check.sh"; exit 1; }
@@ -18,7 +18,7 @@ fi
 # token, else the key `rystic login rys_…` stored; an Enterprise build reads
 # $RYSTIC_LICENSE (a path, or the base64 license itself in a container), else
 # ./rystic-license.json, else the CLI's activated copy. Each build ignores
-# the other's variable, so both are exported when found (RYS-1204).
+# the other's variable, so both are exported when found.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)

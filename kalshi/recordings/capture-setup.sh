@@ -1,5 +1,5 @@
 #!/bin/bash
-# Capture setup — sorts kalshi-orderbook-capture .ndjson.gz files into the
+# Capture setup — sorts Kalshi orderbook capture files (.ndjson.gz) into the
 # layout the twin's replay expects: $KALSHI_CAPTURE_DIR/events/<ticker>/*.ndjson.gz
 # (default ~/data/kalshi-orderbook). The ticker is read from each file's first
 # record, so it works no matter how the files are currently named or arranged.

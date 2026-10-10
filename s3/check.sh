@@ -7,18 +7,18 @@
 #
 # Plain HTTP and curl 7.75 or later only: curl's --aws-sigv4 signs each
 # request, and the twin checks the signature's shape and freshness, never its
-# key, so the machine needs no AWS SDK. (RYS-1372)
+# key, so the machine needs no AWS SDK.
 cd "$(dirname "$0")" || exit 1
 
 [ -f ./s3-twin ] || { echo "✗ s3-twin binary not found next to check.sh"; exit 1; }
 # Only if it needs it: inside the released image the binary is already
-# executable and owned by root while this runs as `rystic`. (RYS-1548)
+# executable and owned by root while this runs as `rystic`.
 [ -x ./s3-twin ] || chmod +x ./s3-twin
 curl --help all 2>/dev/null | grep -q -- '--aws-sigv4' \
   || { echo "✗ curl 7.75 or later is needed: check.sh signs with --aws-sigv4"; exit 1; }
 
 # The twin's log lives in a private directory, never at a fixed path a
-# shared host could have planted a symlink at; the trap removes it. (RYS-1548)
+# shared host could have planted a symlink at; the trap removes it.
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/s3-twin-check.XXXXXX") || exit 1
 LOG="$WORK/s3-twin.log"
 TWIN_PID=""
@@ -33,7 +33,7 @@ fail() {
 }
 
 # A released build refuses to boot without a credential: resolve it as the CLI
-# does, and export both builds' variables since each ignores the other's (RYS-1204).
+# does, and export both builds' variables since each ignores the other's.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)
@@ -47,21 +47,21 @@ if [ -z "${RYSTIC_LICENSE:-}" ]; then
     [ -f "$candidate" ] && { export RYSTIC_LICENSE="$candidate"; break; }
   done
 fi
-# A note, not a failure: an unstamped snapshot boots with neither. (RYS-1204)
+# A note, not a failure: an unstamped snapshot boots with neither.
 [ -n "${RYSTIC_TOKEN:-}${RYSTIC_LICENSE:-}" ] || echo "note: no API key or license found — fine for an unstamped build; a released build refuses to boot without one (rystic login rys_…)"
 
 # Where to serve: the address given, else a loopback port the kernel hands
 # out. Either way readiness is held to the twin this script started — its
 # banner names the address it bound and its model hash, its pid must be
 # alive, and /_rystic/version there must report that hash — so a port some
-# other server holds can never pass as this twin (RYS-1444).
+# other server holds can never pass as this twin.
 #   bash check.sh                   # a free port, printed at the end
 #   bash check.sh localhost:18080   # serve there instead
 BIND="${1:-127.0.0.1:0}"
 
 # The static-site world: a website bucket with seven keys beside its log
 # bucket, so the read half needs no seed. It is also the world a Free key
-# boots, so the name is accepted on every plan. (RYS-1548)
+# boots, so the name is accepted on every plan.
 RYSTIC_ADDR="$BIND" ./s3-twin --scenario s3_static_site > "$LOG" 2>&1 &
 TWIN_PID=$!
 line=""
@@ -91,7 +91,7 @@ done
 [ "$got" = "$HASH" ] || fail "$ADDR answered model $got, not the $HASH its own banner names — that port is not this twin's"
 
 # The twin holds no AWS key, so AWS's documented example pair signs every
-# request; a static Authorization header would go stale. (RYS-1372)
+# request; a static Authorization header would go stale.
 s3() { # <method> <path> [curl args...]
   local method="$1" path="$2"
   shift 2
@@ -129,8 +129,8 @@ code=$(s3 DELETE "/$BUCKET" -o /dev/null -w '%{http_code}')
 curl -sf --noproxy '*' -X POST "http://$ADDR/_rystic/reset" > /dev/null || fail "reset failed"
 
 # The twin stays up on purpose, so there is something to point a client at.
-# RYSTIC_CHECK_STOP=1 stops it, for callers such as `release build -smoke`
-# that run this unattended.
+# RYSTIC_CHECK_STOP=1 stops it, for callers that run this unattended, such
+# as CI.
 if [ "${RYSTIC_CHECK_STOP:-0}" = 1 ]; then
   kill "$TWIN_PID" 2>/dev/null
   wait "$TWIN_PID" 2>/dev/null

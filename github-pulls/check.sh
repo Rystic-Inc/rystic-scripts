@@ -28,7 +28,7 @@ fail() {
 # serves under an API key: $RYSTIC_TOKEN, then config.json's token, then the
 # key `rystic login rys_…` stored. The Enterprise build reads a license:
 # $RYSTIC_LICENSE (a path, or the license itself in a container), then
-# ./rystic-license.json, then the CLI's activated copy in $RYSTIC_HOME (RYS-1204).
+# ./rystic-license.json, then the CLI's activated copy in $RYSTIC_HOME.
 RYSTIC_DIR="${RYSTIC_HOME:-$HOME/.rystic}"
 edition=$(./github-pulls-twin --version 2> /dev/null | sed -n 's/^edition: //p')
 if [ "$edition" = metered ]; then

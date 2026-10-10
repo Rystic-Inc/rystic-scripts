@@ -23,7 +23,7 @@ fail() {
 # serves under an API key: $RYSTIC_TOKEN, then config.json's token, then the
 # key `rystic login rys_…` stored. The Enterprise build reads a license:
 # $RYSTIC_LICENSE (a path, or the license itself in a container), then
-# ./rystic-license.json, then the CLI's activated copy in $RYSTIC_HOME (RYS-1204).
+# ./rystic-license.json, then the CLI's activated copy in $RYSTIC_HOME.
 RYSTIC_DIR="${RYSTIC_HOME:-$HOME/.rystic}"
 edition=$(./kalshi-twin --version 2> /dev/null | sed -n 's/^edition: //p')
 if [ "$edition" = metered ]; then
@@ -79,7 +79,7 @@ done
 
 curl -sf --connect-timeout 1 --max-time 2 "$ADDR/_rystic/version" | grep -q model_hash || fail "twin not responding on $ADDR"
 # A plan without state_set (Free) answers the seed 403 and boots btc15m_tape,
-# so the read-back reads that world's market instead (RYS-1204).
+# so the read-back reads that world's market instead.
 free=0
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$ADDR"/_rystic/seed -d '{
   "state_market_catalog": { "DB-A": {
@@ -92,7 +92,7 @@ case "$code" in
   403)
     free=1
     # btc15m_tape mints its market on the tape's first frame, a moment after
-    # the port opens, so the first read can come back empty (RYS-1204).
+    # the port opens, so the first read can come back empty.
     ticker=
     for _ in $(seq 1 25); do
       ticker=$(curl -sf "$ADDR"/trade-api/v2/markets | sed -n 's/.*"ticker":"\([^"]*\)".*/\1/p' | head -1)
@@ -109,7 +109,7 @@ curl -sf -X POST "$ADDR"/_rystic/reset || fail "reset failed"
 # The twin stays up on purpose: a quickstart whose last act is to kill the
 # thing it just told you is ready leaves you nothing to point a client at.
 # RYSTIC_CHECK_STOP=1 is for callers that want the assertion and not the
-# server, such as `release build -smoke`: a twin left behind holds its port.
+# server, such as a CI job: a twin left behind holds its port.
 if [ "${RYSTIC_CHECK_STOP:-0}" = 1 ]; then
   kill $TWIN_PID 2>/dev/null
   echo "✓ kalshi-twin passed its checks on $ADDR (stopped)"

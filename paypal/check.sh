@@ -1,5 +1,5 @@
 #!/bin/bash
-# Exercise the installed checkout surface and leave a clean running twin. (RYS-1056)
+# Exercise the installed checkout surface and leave a clean running twin.
 set -eu
 cd "$(dirname "$0")"
 ADDR="${1:-localhost:8080}"
@@ -17,7 +17,7 @@ BIN=./paypal-twin
 # token, else the key `rystic login rys_…` stored; an Enterprise build reads
 # $RYSTIC_LICENSE (a path, or the base64 license itself in a container), else
 # ./rystic-license.json, else the CLI's activated copy. Each build ignores
-# the other's variable, so both are exported when found (RYS-1204).
+# the other's variable, so both are exported when found.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)

@@ -18,7 +18,7 @@ cd "$(dirname "$0")" || exit 1
 
 # The twin's log lives in a directory of this run's own, never at a fixed path
 # another run on the host truncates. The trap removes it unless the twin is
-# left running, whose log stays where the last line says. (RYS-1951)
+# left running, whose log stays where the last line says.
 TMP_ROOT=${TMPDIR:-/tmp}
 WORK=$(mktemp -d "${TMP_ROOT%/}/stripe-twin-check.XXXXXX") || exit 1
 LOG="$WORK/stripe-twin.log"
@@ -39,7 +39,7 @@ fail() {
 # token, else the key `rystic login rys_…` stored; an Enterprise build reads
 # $RYSTIC_LICENSE (a path, or the base64 license itself in a container), else
 # ./rystic-license.json, else the CLI's activated copy. Each build ignores
-# the other's variable, so both are exported when found (RYS-1204).
+# the other's variable, so both are exported when found.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)
@@ -53,9 +53,9 @@ if [ -z "${RYSTIC_LICENSE:-}" ]; then
     [ -f "$candidate" ] && { export RYSTIC_LICENSE="$candidate"; break; }
   done
 fi
-# A note, not a failure: an unstamped snapshot (the shape `ci.sh
-# install-release` builds) boots with neither. A released build that needs
-# one refuses at startup and says so, and the boot loop surfaces the log.
+# A note, not a failure: an unstamped snapshot boots with neither. A released
+# build that needs one refuses at startup and says so, and the boot loop
+# surfaces the log.
 [ -n "${RYSTIC_TOKEN:-}${RYSTIC_LICENSE:-}" ] || echo "note: no API key or license found — fine for an unstamped build; a released build refuses to boot without one (rystic login rys_…)"
 
 # Where to serve. Override to run beside something already on 8080:
@@ -113,7 +113,7 @@ curl -sf -X POST "$ADDR"/_rystic/reset > /dev/null || fail "reset failed"
 # The twin stays up on purpose: a quickstart whose last act is to kill the
 # thing it just told you is ready leaves you nothing to point a client at.
 # RYSTIC_CHECK_STOP=1 is for callers that want the assertion and not the
-# server, such as `ci.sh install-release`: a twin left behind holds its port.
+# server, such as a CI job: a twin left behind holds its port.
 if [ "${RYSTIC_CHECK_STOP:-0}" = 1 ]; then
   { kill $TWIN_PID && wait $TWIN_PID; } 2> /dev/null
   echo "✓ stripe-twin passed its checks on $ADDR (stopped)"

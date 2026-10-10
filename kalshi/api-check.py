@@ -67,10 +67,9 @@ def market(ticker, event, bid, ask):
     """A COMPLETE market record — every field live serves on every read.
 
     This script seeds the world it then checks, so the world it seeds is also
-    an example of one. It used to seed five fields, which is the shape that
-    shipped in 0.0.11 and killed a customer's bot one KeyError at a time
-    (FINDINGS #29/#37): a firm's stack indexes the documented market before it
-    prices, and absent is the one answer the real API never gives.
+    an example of one. Seed every documented field: a bot indexes the market
+    before it prices, and a missing field is an answer the real API never
+    gives.
 
     Prices are 4-dp FixedPointDollars, and price_ranges declares the tick the
     order-price guard enforces — read it before you price anything.
@@ -111,8 +110,8 @@ ctl("POST", "/_rystic/seed", {
     "state_market_catalog": {"DB-A": MKT, "DB-B": MKT2},
     "state_orderbook": {"DB-A": BOOK},
     "state_balance": {"member": {"balance_dollars": "10000.00"}},
-    # Complete too: the model marks eight event fields required, and
-    # event-scoped discovery is how a firm's bot finds markets at all.
+    # Complete too: event-scoped discovery is how a bot finds markets at
+    # all, so the event carries every documented field.
     "state_event": {"EVT-1": {
         "event_ticker": "EVT-1", "series_ticker": "SER-1",
         "title": "Test event", "sub_title": "Smoke-check event",
