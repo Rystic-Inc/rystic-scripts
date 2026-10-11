@@ -11,8 +11,8 @@ variants/ and holds each to the opposite: it never rests both sides.
 A twin this script boots gets the credential check.sh would find: $RYSTIC_TOKEN
 or the key `rystic login` stored, $RYSTIC_LICENSE or a rystic-license.json.
 
-The scenario is tight_book (KXDEMO-26-A, 0.39 / 0.40, 25 a side), which needs a
-Pro or Enterprise plan. The twin is reset to it before every bot, through
+The scenario is tight_book (KXDEMO-26-A, 0.39 / 0.40, 25 a side), so the twin's
+plan must include scenarios. The twin is reset to it before every bot, through
 POST /_rystic/scenario.
 """
 import json

@@ -78,8 +78,8 @@ curl -sf --connect-timeout 1 --max-time 2 "$ADDR/_rystic/version" | grep -q mode
 
 # No Slack app is needed or wanted: no method checks a token's value. The
 # prefix matters — the twin reads the credential kind off it, the way Slack
-# does — so the check sends the shape a real client would. Free boots
-# design_studio and Pro an empty workspace; the round trip works in both.
+# does — so the check sends the shape a real client would. Every plan boots
+# an empty workspace, and the round trip works in it.
 AUTH="Authorization: Bearer xoxb-placeholder"
 
 created=$(curl -sf -X POST "$ADDR"/conversations.create -H "$AUTH" -d "name=quickstart") \

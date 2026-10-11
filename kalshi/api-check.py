@@ -66,13 +66,10 @@ ctl("POST", "/_rystic/seed-rng", {"seed": 42})
 def market(ticker, event, bid, ask):
     """A COMPLETE market record — every field live serves on every read.
 
-    This script seeds the world it then checks, so the world it seeds is also
-    an example of one. Seed every documented field: a bot indexes the market
-    before it prices, and a missing field is an answer the real API never
-    gives.
-
-    Prices are 4-dp FixedPointDollars, and price_ranges declares the tick the
-    order-price guard enforces — read it before you price anything.
+    The world this script seeds is also an example of one: a bot indexes the
+    market before it prices, and a missing field is an answer the real API
+    never gives. Prices are 4-dp FixedPointDollars, and price_ranges declares
+    the tick the order-price guard enforces — read it before you price.
     """
     return {
         "ticker": ticker, "event_ticker": event,

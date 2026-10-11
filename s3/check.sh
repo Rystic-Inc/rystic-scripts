@@ -60,8 +60,7 @@ fi
 BIND="${1:-127.0.0.1:0}"
 
 # The static-site world: a website bucket with seven keys beside its log
-# bucket, so the read half needs no seed. It is also the world a Free key
-# boots, so the name is accepted on every plan.
+# bucket, so the read half needs no seed.
 RYSTIC_ADDR="$BIND" ./s3-twin --scenario s3_static_site > "$LOG" 2>&1 &
 TWIN_PID=$!
 line=""
