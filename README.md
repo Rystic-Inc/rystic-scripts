@@ -6,7 +6,7 @@ Customer scripts for Rystic simulators, one folder per simulator. Each one also 
 |---|---|
 | kalshi | `check.sh`, `trade-check.sh`, `api-check.py`, `bots/` (simple-bot, balance-watcher, book-reader, random-walker), `recordings/capture-setup.sh` |
 | github-pulls | `check.sh`, `bots/` (see below) |
-| linear, lob, notion, okta, paypal, resend, s3, slack, stripe | `check.sh` |
+| clerk, linear, lob, notion, okta, paypal, resend, s3, slack, stripe | `check.sh` |
 
 `environments/` has example multi-twin stacks: stack file plus the compose file Rystic exports from it.
 
