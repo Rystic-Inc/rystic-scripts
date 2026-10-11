@@ -51,8 +51,7 @@ fi
 BIND="${1:-127.0.0.1:0}"
 
 # The team wiki: a root page with three child pages and a Meeting Notes
-# database, so the read half needs no seed. It is also the world a Free key
-# boots, so the name is accepted on every plan.
+# database, so the read half needs no seed.
 RYSTIC_ADDR="$BIND" ./notion-twin --scenario notion_team_wiki > "$LOG" 2>&1 &
 TWIN_PID=$!
 line=""
@@ -128,20 +127,15 @@ trashed=$(notion DELETE "/v1/blocks/$PAGE") || fail "trashing the page rejected"
 echo "$trashed" | grep -q '"in_trash":true' || fail "trashing the page answered: ${trashed:0:300}"
 
 curl -sf --noproxy '*' -X POST "http://$ADDR/_rystic/reset" > /dev/null || fail "reset failed"
-# Free reset restores the wiki but forbids scenario loading; paid reset clears it.
-restored=$(notion GET /v1/users/me -w ' %{http_code}') || fail "users/me after reset rejected"
+# Reset wipes to empty on every plan, so the wiki is loaded again for the
+# client the twin stays up for.
+curl -sf --noproxy '*' -X POST "http://$ADDR/_rystic/scenario" \
+  -H 'Content-Type: application/json' -d '{"name":"notion_team_wiki"}' > /dev/null \
+  || fail "reloading the team wiki after reset failed"
+restored=$(notion GET /v1/users/me -w ' %{http_code}') || fail "users/me after reload rejected"
 case "$restored" in
   *'"name":"Wiki Reader"'*' 200') ;;
-  *)
-    curl -sf --noproxy '*' -X POST "http://$ADDR/_rystic/scenario" \
-      -H 'Content-Type: application/json' -d '{"name":"notion_team_wiki"}' > /dev/null \
-      || fail "reloading the team wiki after reset failed"
-    restored=$(notion GET /v1/users/me -w ' %{http_code}') || fail "users/me after reload rejected"
-    case "$restored" in
-      *'"name":"Wiki Reader"'*' 200') ;;
-      *) fail "the team wiki's bot did not answer after reload: ${restored:0:200}" ;;
-    esac
-    ;;
+  *) fail "the team wiki's bot did not answer after reload: ${restored:0:200}" ;;
 esac
 
 # The twin stays up on purpose, so there is something to point a client at.

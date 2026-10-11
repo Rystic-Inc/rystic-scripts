@@ -68,8 +68,7 @@ fi
 
 # The open-queue world: one repository, tb-owner/tb-repo, with four open pull
 # requests. Booting into it means the list below has something to return
-# without a seed step, which is what a customer's first command should do. It
-# is also the world a Free key boots, so the name is accepted on every plan.
+# without a seed step, which is what a customer's first command should do.
 RYSTIC_ADDR=":$PORT" ./github-pulls-twin --scenario github-pulls_open_queue > /tmp/github-pulls-twin.log 2>&1 &
 TWIN_PID=$!
 for i in $(seq 1 150); do

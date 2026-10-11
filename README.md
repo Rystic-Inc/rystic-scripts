@@ -12,7 +12,7 @@ Customer scripts for Rystic simulators, one folder per simulator. Each one also 
 
 `check.sh` expects the twin binary in the same folder, so copy it next to your installed twin or run the copy that ships in the archive.
 
-`github-pulls/bots/` is a Kalshi market maker, not a GitHub client. It is the code under review in the GitHub twin's `github-pulls_bot_pr_queue` scenario: `bot.py` is the working bot, each file in `variants/` breaks it one way and is one of that scenario's open pull requests, and `test_bot.py` runs them all against a Kalshi twin (`KALSHI_BASE_URL` for one already running, `KALSHI_TWIN_BIN` for a binary, else the one `rystic pull kalshi-twin` installed). It needs `requests` and a Pro or Enterprise plan, since it loads the `tight_book` scenario.
+`github-pulls/bots/` is a Kalshi market maker, not a GitHub client. It is the code under review in the GitHub twin's `github-pulls_bot_pr_queue` scenario: `bot.py` is the working bot, each file in `variants/` breaks it one way and is one of that scenario's open pull requests, and `test_bot.py` runs them all against a Kalshi twin (`KALSHI_BASE_URL` for one already running, `KALSHI_TWIN_BIN` for a binary, else the one `rystic pull kalshi-twin` installed). It needs `requests`, and the twin's plan must include scenarios, since it loads the `tight_book` scenario.
 
 Docs: https://www.rystic.ai/docs
 

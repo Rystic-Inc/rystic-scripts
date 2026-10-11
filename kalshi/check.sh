@@ -1,6 +1,5 @@
 #!/bin/bash
-# Quickstart check — boots the twin, seeds a market, reads it back. On Free,
-# which cannot seed, it reads back the btc15m_tape world the twin boots.
+# Quickstart check — boots the twin, seeds a market, reads it back.
 # Run from anywhere: bash check.sh [host:port]
 cd "$(dirname "$0")" || exit 1
 
@@ -78,30 +77,12 @@ for i in $(seq 1 150); do
 done
 
 curl -sf --connect-timeout 1 --max-time 2 "$ADDR/_rystic/version" | grep -q model_hash || fail "twin not responding on $ADDR"
-# A plan without state_set (Free) answers the seed 403 and boots btc15m_tape,
-# so the read-back reads that world's market instead.
-free=0
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$ADDR"/_rystic/seed -d '{
   "state_market_catalog": { "DB-A": {
     "ticker": "DB-A", "status": "active",
     "yes_ask_dollars": "0.40", "no_ask_dollars": "0.55" } } }')
 case "$code" in
-  2??)
-    curl -sf "$ADDR"/trade-api/v2/markets/DB-A | grep -q '"ticker":"DB-A"' || fail "read-back failed"
-    ;;
-  403)
-    free=1
-    # btc15m_tape mints its market on the tape's first frame, a moment after
-    # the port opens, so the first read can come back empty.
-    ticker=
-    for _ in $(seq 1 25); do
-      ticker=$(curl -sf "$ADDR"/trade-api/v2/markets | sed -n 's/.*"ticker":"\([^"]*\)".*/\1/p' | head -1)
-      [ -n "$ticker" ] && break
-      sleep 0.2
-    done
-    [ -n "$ticker" ] || fail "the plan refused the seed and the twin lists no market"
-    curl -sf "$ADDR"/trade-api/v2/markets/"$ticker" | grep -q "\"ticker\":\"$ticker\"" || fail "read-back failed for $ticker"
-    ;;
+  2??) curl -sf "$ADDR"/trade-api/v2/markets/DB-A | grep -q '"ticker":"DB-A"' || fail "read-back failed" ;;
   *) fail "seed rejected (HTTP $code)" ;;
 esac
 curl -sf -X POST "$ADDR"/_rystic/reset || fail "reset failed"
@@ -114,9 +95,5 @@ if [ "${RYSTIC_CHECK_STOP:-0}" = 1 ]; then
   kill $TWIN_PID 2>/dev/null
   echo "✓ kalshi-twin passed its checks on $ADDR (stopped)"
 else
-  if [ "$free" = 1 ]; then
-    echo "✓ kalshi-twin is good to go on $ADDR in btc15m_tape (kill $TWIN_PID to stop; trade-check.sh needs Pro or Enterprise)"
-  else
-    echo "✓ kalshi-twin is good to go on $ADDR (kill $TWIN_PID to stop; next: bash trade-check.sh $ADDR)"
-  fi
+  echo "✓ kalshi-twin is good to go on $ADDR (kill $TWIN_PID to stop; next: bash trade-check.sh $ADDR)"
 fi

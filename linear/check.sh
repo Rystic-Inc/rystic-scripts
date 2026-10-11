@@ -51,8 +51,7 @@ if curl -sf -o /dev/null "$ADDR/_rystic/version" 2> /dev/null; then
 fi
 
 # The sprint-board world: one team, ENG, with six people, six workflow states
-# and eight issues, so the check needs no seed. It is also the world a Free key
-# boots, so the name is accepted on every plan.
+# and eight issues, so the check needs no seed.
 RYSTIC_ADDR="$ADDR" ./linear-twin --scenario linear_sprint_board > /tmp/linear-twin.log 2>&1 &
 TWIN_PID=$!
 for _ in $(seq 1 150); do
