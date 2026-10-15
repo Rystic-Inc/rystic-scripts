@@ -112,9 +112,9 @@ case "$read" in
   *) fail "the redlined contract did not read back its paragraphs, Bob's tracked insertion and Alice's comment: ${read:0:300}" ;;
 esac
 
-# Tracking on, then a clause appended: the edit is a tracked insertion, and
-# the reviewed text shows it in the current view and not in the original.
-edit=$(batch '{"Actions":[{"Id":1,"ActionType":4,"Name":"ChangeTrackingMode","ObjectPathId":1,"ArgumentInfo":{"Arguments":["TrackAll"]}},{"Id":2,"ActionType":1,"Name":"","ObjectPathId":3}],"ObjectPaths":{'"$ROOT"',"3":{"Id":3,"ObjectPathType":3,"Name":"InsertText","ParentObjectPathId":2,"ArgumentInfo":{"Arguments":[" Signed by both parties.","End"]}}}}') \
+# Tracking on, a clause appended to the last paragraph (Word tracks that, not
+# the body's insertText): a tracked insertion, current but not original text.
+edit=$(batch '{"Actions":[{"Id":1,"ActionType":4,"Name":"ChangeTrackingMode","ObjectPathId":1,"ArgumentInfo":{"Arguments":["TrackAll"]}},{"Id":2,"ActionType":1,"Name":"","ObjectPathId":5}],"ObjectPaths":{'"$ROOT"',"3":{"Id":3,"ObjectPathType":4,"Name":"Paragraphs","ParentObjectPathId":2},"4":{"Id":4,"ObjectPathType":3,"Name":"GetLast","ParentObjectPathId":3,"ArgumentInfo":{"Arguments":[]}},"5":{"Id":5,"ObjectPathType":3,"Name":"InsertText","ParentObjectPathId":4,"ArgumentInfo":{"Arguments":[" Signed by both parties.","End"]}}}}') \
   || fail "inserting text rejected"
 case "$edit" in *'"Error"'*) fail "inserting text with tracking on answered an error: ${edit:0:300}" ;; esac
 changes=$(batch '{"Actions":[{"Id":1,"ActionType":2,"Name":"","ObjectPathId":3,"QueryInfo":{"Select":["type","text"]}}],"ObjectPaths":{'"$ROOT"',"3":{"Id":3,"ObjectPathType":3,"Name":"GetTrackedChanges","ParentObjectPathId":2,"ArgumentInfo":{"Arguments":[]}}}}') \
