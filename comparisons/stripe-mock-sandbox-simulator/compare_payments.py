@@ -2,7 +2,8 @@
 
 Takes the Stripe run plus one or more server runs written by run_payments.py
 (or by run_receipts.py), compares each step's result field by field, prints a
-table and optionally writes the merged JSON with a verdict per step and server.
+table and optionally writes the merged JSON with a verdict per step and server,
+stamped with any --meta facts about the run.
 Timings, recorded requests and masked object ids are not compared.
 
     python3 compare_payments.py results-stripe.json results-mock.json results-rystic.json --out results.json
@@ -127,11 +128,21 @@ def main():
     parser.add_argument("stripe", help="the Stripe run's results JSON")
     parser.add_argument("servers", nargs="+", help="one or more server runs' results JSON")
     parser.add_argument("--out", help="write the merged JSON here")
+    parser.add_argument("--meta", action="append", default=[], metavar="KEY=VALUE",
+                        help="a fact about the run (date, versions, sandbox) stamped into the merged JSON; repeatable")
     args = parser.parse_args()
+    run = {}
+    for item in args.meta:
+        key, sep, value = item.partition("=")
+        if not sep or not key:
+            parser.error("--meta takes KEY=VALUE, got %r" % item)
+        run[key] = value
     try:
         merged = compare(load(args.stripe), [load(p) for p in args.servers])
     except ValueError as e:
         parser.error(str(e))
+    if run:
+        merged = {"run": run, **merged}
     print(table(merged), end="")
     if args.out:
         with open(args.out, "w") as f:

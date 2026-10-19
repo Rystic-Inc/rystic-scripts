@@ -76,6 +76,27 @@ class ComparePayments(unittest.TestCase):
             with open(out) as f:
                 self.assertEqual(json.load(f)["agrees_with_stripe"], {"field_mismatch": 1})
 
+    def test_cli_stamps_the_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "merged.json")
+            subprocess.run([sys.executable, os.path.join(HERE, "compare_payments.py"),
+                            os.path.join(HERE, "testdata", "stripe.json"),
+                            os.path.join(HERE, "testdata", "match.json"), "--out", out,
+                            "--meta", "date=2026-10-18", "--meta", "sandbox=new, empty=before the run"],
+                           capture_output=True, text=True, check=True)
+            with open(out) as f:
+                merged = json.load(f)
+            self.assertEqual(merged["run"], {"date": "2026-10-18", "sandbox": "new, empty=before the run"})
+            self.assertEqual(list(merged)[0], "run")
+
+    def test_cli_refuses_a_meta_without_a_value(self):
+        run = subprocess.run([sys.executable, os.path.join(HERE, "compare_payments.py"),
+                              os.path.join(HERE, "testdata", "stripe.json"),
+                              os.path.join(HERE, "testdata", "match.json"), "--meta", "date"],
+                             capture_output=True, text=True)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("KEY=VALUE", run.stderr)
+
 
 class CompareStep(unittest.TestCase):
     def verdict(self, want, got):
