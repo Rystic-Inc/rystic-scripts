@@ -88,7 +88,7 @@ Each entry links a commit permalink to that run's results folder.
 
 | Date | Change | Results |
 |---|---|---|
-| 2026-10-18 | First published run. | [`results/2026-10-18/`](results/2026-10-18/) |
+| 2026-10-18 | First published run. | [`results/2026-10-18/` at 99656f9](https://github.com/Rystic-Inc/rystic-scripts/tree/99656f9805138e990093fd80b07eba6f8f9d9bc4/comparisons/stripe-mock-sandbox-simulator/results/2026-10-18) |
 
 ## Corrections
 
