@@ -8,6 +8,8 @@ Customer scripts for Rystic simulators, one folder per simulator. Each one also 
 | github-pulls | `check.sh`, `bots/` (see below) |
 | clerk, dropbox, google-drive, linear, lob, notion, okta, paypal, resend, s3, slack, stripe, word | `check.sh` |
 
+`comparisons/` has head-to-head harnesses that run the same API calls against a simulator, other servers and the real API; `stripe-mock-sandbox-simulator/` compares stripe-mock, the Stripe sandbox and the Stripe simulator. It ships in no release archive.
+
 `environments/` has example multi-twin stacks: stack file plus the compose file Rystic exports from it.
 
 `check.sh` expects the twin binary in the same folder, so copy it next to your installed twin or run the copy that ships in the archive.
