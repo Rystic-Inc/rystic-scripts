@@ -25,13 +25,30 @@ fail() {
 }
 
 # The credential, resolved the way the CLI resolves it. The Free and Pro build
-# serves under an API key: $RYSTIC_TOKEN, then config.json's token, then the
-# key `rystic login rys_…` stored. The Enterprise build reads a license:
+# serves under an API key: $RYSTIC_TOKEN, then a token file ($RYSTIC_TOKEN_FILE
+# or the rystic_token secret), then config.json's token, then the key
+# `rystic login rys_…` stored. The Enterprise build reads a license:
 # $RYSTIC_LICENSE (a path, or the license itself in a container), then
 # ./rystic-license.json, then the CLI's activated copy in $RYSTIC_HOME.
 RYSTIC_DIR="${RYSTIC_HOME:-$HOME/.rystic}"
 edition=$(./github-pulls-twin --version 2> /dev/null | sed -n 's/^edition: //p')
 if [ "$edition" = metered ]; then
+  # A token file a deployment names or mounts comes before the saved login, and
+  # one named or mounted but unusable stops the check rather than falling through.
+  trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
+  token_from() { # <path> <where it came from>
+    { [ ! -d "$1" ] && [ -r "$1" ]; } || fail "$2 ($1) is not a readable file"
+    RYSTIC_TOKEN=$(trim "$(cat "$1")")
+    [ -n "$RYSTIC_TOKEN" ] || fail "$2 ($1) is empty — it should hold the API key (rys_…)"
+  }
+  RYSTIC_TOKEN=$(trim "${RYSTIC_TOKEN:-}")
+  TOKEN_FILE=$(trim "${RYSTIC_TOKEN_FILE:-}")
+  SECRET=/run/secrets/rystic_token
+  if [ -z "$RYSTIC_TOKEN" ] && [ -n "$TOKEN_FILE" ]; then
+    token_from "$TOKEN_FILE" '$RYSTIC_TOKEN_FILE'
+  elif [ -z "$RYSTIC_TOKEN" ] && { [ -e "$SECRET" ] || [ -L "$SECRET" ]; }; then
+    token_from "$SECRET" 'the rystic_token secret'
+  fi
   if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RYSTIC_DIR/config.json" ]; then
     RYSTIC_TOKEN=$(sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$RYSTIC_DIR/config.json" | head -1)
   fi

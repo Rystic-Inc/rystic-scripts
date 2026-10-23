@@ -28,6 +28,22 @@ fail() {
 # A released build refuses to boot without a credential: resolve it as the CLI
 # does, and export both builds' variables since each ignores the other's.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
+# A token file a deployment names or mounts comes before the saved login, and
+# one named or mounted but unusable stops the check rather than falling through.
+trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
+token_from() { # <path> <where it came from>
+  { [ ! -d "$1" ] && [ -r "$1" ]; } || fail "$2 ($1) is not a readable file"
+  RYSTIC_TOKEN=$(trim "$(cat "$1")")
+  [ -n "$RYSTIC_TOKEN" ] || fail "$2 ($1) is empty — it should hold the API key (rys_…)"
+}
+RYSTIC_TOKEN=$(trim "${RYSTIC_TOKEN:-}")
+TOKEN_FILE=$(trim "${RYSTIC_TOKEN_FILE:-}")
+SECRET=/run/secrets/rystic_token
+if [ -z "$RYSTIC_TOKEN" ] && [ -n "$TOKEN_FILE" ]; then
+  token_from "$TOKEN_FILE" '$RYSTIC_TOKEN_FILE'
+elif [ -z "$RYSTIC_TOKEN" ] && { [ -e "$SECRET" ] || [ -L "$SECRET" ]; }; then
+  token_from "$SECRET" 'the rystic_token secret'
+fi
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)
 fi
@@ -170,7 +186,7 @@ echo "$meta" | grep -q '"plan":"pro"' || fail "merged public metadata did not re
 missing=$(clerk GET /v1/users/user_missing -w ' %{http_code}')
 case "$missing" in *'"code":"resource_not_found"'*' 404') ;; *) fail "a missing user was not refused with resource_not_found: ${missing:0:300}" ;; esac
 unauthed=$(curl -s --noproxy '*' "http://$ADDR/v1/users" -w ' %{http_code}')
-case "$unauthed" in *'"code":"authentication_invalid"'*' 401') ;; *) fail "a request with no secret key was not refused with authentication_invalid: ${unauthed:0:300}" ;; esac
+case "$unauthed" in *'"code":"authorization_header_format_invalid"'*' 401') ;; *) fail "a request with no secret key was not refused with authorization_header_format_invalid: ${unauthed:0:300}" ;; esac
 
 if [ "$COMPANION" = 1 ]; then
   config=$(curl -s --noproxy '*' "http://$ADDR/_twin/config") || fail "/_twin/config rejected"

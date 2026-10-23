@@ -35,6 +35,22 @@ fail() {
 # A released build refuses to boot without a credential: resolve it as the CLI
 # does, and export both builds' variables since each ignores the other's.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
+# A token file a deployment names or mounts comes before the saved login, and
+# one named or mounted but unusable stops the check rather than falling through.
+trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
+token_from() { # <path> <where it came from>
+  { [ ! -d "$1" ] && [ -r "$1" ]; } || fail "$2 ($1) is not a readable file"
+  RYSTIC_TOKEN=$(trim "$(cat "$1")")
+  [ -n "$RYSTIC_TOKEN" ] || fail "$2 ($1) is empty — it should hold the API key (rys_…)"
+}
+RYSTIC_TOKEN=$(trim "${RYSTIC_TOKEN:-}")
+TOKEN_FILE=$(trim "${RYSTIC_TOKEN_FILE:-}")
+SECRET=/run/secrets/rystic_token
+if [ -z "$RYSTIC_TOKEN" ] && [ -n "$TOKEN_FILE" ]; then
+  token_from "$TOKEN_FILE" '$RYSTIC_TOKEN_FILE'
+elif [ -z "$RYSTIC_TOKEN" ] && { [ -e "$SECRET" ] || [ -L "$SECRET" ]; }; then
+  token_from "$SECRET" 'the rystic_token secret'
+fi
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)
 fi

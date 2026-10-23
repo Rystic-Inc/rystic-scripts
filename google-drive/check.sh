@@ -26,6 +26,22 @@ fail() {
 # A released build refuses to boot without a credential: resolve it as the CLI
 # does, and export both builds' variables since each ignores the other's.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
+# A token file a deployment names or mounts comes before the saved login, and
+# one named or mounted but unusable stops the check rather than falling through.
+trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
+token_from() { # <path> <where it came from>
+  { [ ! -d "$1" ] && [ -r "$1" ]; } || fail "$2 ($1) is not a readable file"
+  RYSTIC_TOKEN=$(trim "$(cat "$1")")
+  [ -n "$RYSTIC_TOKEN" ] || fail "$2 ($1) is empty — it should hold the API key (rys_…)"
+}
+RYSTIC_TOKEN=$(trim "${RYSTIC_TOKEN:-}")
+TOKEN_FILE=$(trim "${RYSTIC_TOKEN_FILE:-}")
+SECRET=/run/secrets/rystic_token
+if [ -z "$RYSTIC_TOKEN" ] && [ -n "$TOKEN_FILE" ]; then
+  token_from "$TOKEN_FILE" '$RYSTIC_TOKEN_FILE'
+elif [ -z "$RYSTIC_TOKEN" ] && { [ -e "$SECRET" ] || [ -L "$SECRET" ]; }; then
+  token_from "$SECRET" 'the rystic_token secret'
+fi
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)
 fi
@@ -86,10 +102,11 @@ done
 [ -n "$got" ] || fail "/_rystic/version on $ADDR reported no model hash"
 [ "$got" = "$HASH" ] || fail "$ADDR answered model $got, not the $HASH its own banner names — that port is not this twin's"
 
-# Any bearer value is the world's own user; no Google project, OAuth client
-# or token is involved. Metadata routes live under /drive/v3, uploads under
-# /upload/drive/v3, both on the one port. Every request has a deadline, so a
-# twin that stops answering fails the check instead of hanging it.
+# Any bearer value that starts ya29. is the world's own user; no Google
+# project, OAuth client or token is involved. Metadata routes live under
+# /drive/v3, uploads under /upload/drive/v3, both on the one port. Every
+# request has a deadline, so a twin that stops answering fails the check
+# instead of hanging it.
 B="http://$ADDR"
 CURL=(curl -s --noproxy '*' --max-time 30)
 drive() { # <method> <path?query> [curl args...]
