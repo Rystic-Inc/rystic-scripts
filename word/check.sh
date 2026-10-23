@@ -27,6 +27,22 @@ fail() {
 # A released build refuses to boot without a credential: resolve it as the CLI
 # does, and export both builds' variables since each ignores the other's.
 RHOME="${RYSTIC_HOME:-$HOME/.rystic}"
+# A token file a deployment names or mounts comes before the saved login, and
+# one named or mounted but unusable stops the check rather than falling through.
+trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
+token_from() { # <path> <where it came from>
+  { [ ! -d "$1" ] && [ -r "$1" ]; } || fail "$2 ($1) is not a readable file"
+  RYSTIC_TOKEN=$(trim "$(cat "$1")")
+  [ -n "$RYSTIC_TOKEN" ] || fail "$2 ($1) is empty — it should hold the API key (rys_…)"
+}
+RYSTIC_TOKEN=$(trim "${RYSTIC_TOKEN:-}")
+TOKEN_FILE=$(trim "${RYSTIC_TOKEN_FILE:-}")
+SECRET=/run/secrets/rystic_token
+if [ -z "$RYSTIC_TOKEN" ] && [ -n "$TOKEN_FILE" ]; then
+  token_from "$TOKEN_FILE" '$RYSTIC_TOKEN_FILE'
+elif [ -z "$RYSTIC_TOKEN" ] && { [ -e "$SECRET" ] || [ -L "$SECRET" ]; }; then
+  token_from "$SECRET" 'the rystic_token secret'
+fi
 if [ -z "${RYSTIC_TOKEN:-}" ] && [ -f "$RHOME/config.json" ]; then
   RYSTIC_TOKEN=$(sed -n 's/.*"token" *: *"\([^"]*\)".*/\1/p' "$RHOME/config.json" | head -n 1)
 fi
@@ -112,9 +128,9 @@ case "$read" in
   *) fail "the redlined contract did not read back its paragraphs, Bob's tracked insertion and Alice's comment: ${read:0:300}" ;;
 esac
 
-# Tracking on, then a clause appended: the edit is a tracked insertion, and
-# the reviewed text shows it in the current view and not in the original.
-edit=$(batch '{"Actions":[{"Id":1,"ActionType":4,"Name":"ChangeTrackingMode","ObjectPathId":1,"ArgumentInfo":{"Arguments":["TrackAll"]}},{"Id":2,"ActionType":1,"Name":"","ObjectPathId":3}],"ObjectPaths":{'"$ROOT"',"3":{"Id":3,"ObjectPathType":3,"Name":"InsertText","ParentObjectPathId":2,"ArgumentInfo":{"Arguments":[" Signed by both parties.","End"]}}}}') \
+# Tracking on, a clause appended to the last paragraph (Word tracks that, not
+# the body's insertText): a tracked insertion, current but not original text.
+edit=$(batch '{"Actions":[{"Id":1,"ActionType":4,"Name":"ChangeTrackingMode","ObjectPathId":1,"ArgumentInfo":{"Arguments":["TrackAll"]}},{"Id":2,"ActionType":1,"Name":"","ObjectPathId":5}],"ObjectPaths":{'"$ROOT"',"3":{"Id":3,"ObjectPathType":4,"Name":"Paragraphs","ParentObjectPathId":2},"4":{"Id":4,"ObjectPathType":3,"Name":"GetLast","ParentObjectPathId":3,"ArgumentInfo":{"Arguments":[]}},"5":{"Id":5,"ObjectPathType":3,"Name":"InsertText","ParentObjectPathId":4,"ArgumentInfo":{"Arguments":[" Signed by both parties.","End"]}}}}') \
   || fail "inserting text rejected"
 case "$edit" in *'"Error"'*) fail "inserting text with tracking on answered an error: ${edit:0:300}" ;; esac
 changes=$(batch '{"Actions":[{"Id":1,"ActionType":2,"Name":"","ObjectPathId":3,"QueryInfo":{"Select":["type","text"]}}],"ObjectPaths":{'"$ROOT"',"3":{"Id":3,"ObjectPathType":3,"Name":"GetTrackedChanges","ParentObjectPathId":2,"ArgumentInfo":{"Arguments":[]}}}}') \
