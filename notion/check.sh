@@ -97,7 +97,7 @@ done
 [ "$got" = "$HASH" ] || fail "$ADDR answered model $got, not the $HASH its own banner names — that port is not this twin's"
 
 # Any non-empty bearer token is the world's bot; the twin answers Notion-Version
-# 2026-03-11 and 2025-09-03, and a request must name one.
+# 2026-03-11 and 2025-09-03, and a request must carry a Notion-Version header.
 notion() { # <method> <path> [curl args...]
   local method="$1" path="$2"
   shift 2
