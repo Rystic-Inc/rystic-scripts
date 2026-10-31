@@ -1,5 +1,6 @@
 """Harness for the RYS-3809 election-night sample against kalshi-twin."""
-import json, os, subprocess, time, urllib.request, urllib.error, glob
+import json, os, signal, subprocess, time, urllib.request, urllib.error, glob
+from datetime import datetime
 
 SEED = os.path.expanduser(os.environ.get('KT_SEED', '~/data/kalshi-loadtest/2026-10-23/full'))
 BIN = os.environ.get('KT_BIN', '/private/tmp/claude-501/-Users-zkiihne/36a291d6-dfa5-5daf-859f-9da661fc657a/scratchpad/kt-main')
@@ -7,10 +8,30 @@ PORT = int(os.environ.get('KT_PORT', '8090'))  # :8080 is slack-twin on the MacB
 URL = 'http://localhost:%d' % PORT
 WS_URL = 'ws://localhost:%d/trade-api/ws/v2' % PORT
 T0_MS = 1793746800000  # 2026-11-03T23:00:00Z
+RYSTIC = os.environ.get('KT_RYSTIC')               # boot `rystic run kalshi-twin` instead of KT_BIN
+METADATA = os.environ.get('KT_METADATA', 'off')    # RYSTIC_REPLAY_METADATA
+INJECT_MODE = os.environ.get('KT_INJECT_MODE', 'post')  # post: shifted POST /_rystic/inject; start: path in /_replay/start (0.0.47+, state_set)
+assert INJECT_MODE in ('post', 'start'), INJECT_MODE
+
+
+def _checkpoint():
+    if os.environ.get('KT_CHECKPOINT_MS'):
+        return int(os.environ['KT_CHECKPOINT_MS'])
+    try:
+        start = json.load(open(SEED + '/manifest.json'))['start']
+        return int(datetime.fromisoformat(start.replace('Z', '+00:00')).timestamp() * 1000) + 1
+    except (OSError, KeyError, ValueError):
+        return T0_MS + 1
+
+
+CHECKPOINT_MS = _checkpoint()   # manifest start + 1 ms = 1793746800001 for the election seed
 
 
 def markets():
-    return sorted(os.path.basename(p) for p in glob.glob(SEED + '/tape/events/*'))
+    dot = next(iter(glob.iglob(SEED + '/tape/**/._*', recursive=True)), None)
+    if dot:
+        raise SystemExit(f"{dot}: AppleDouble files in the seed; find {SEED}/tape -name '._*' -delete")
+    return sorted(os.path.basename(p) for p in glob.glob(SEED + '/tape/events/*') if os.path.isdir(p))
 
 
 def req(method, path, body=None, timeout=7200):
@@ -41,10 +62,16 @@ def boot(log, env=None, inject=None):
     with socket.socket() as so:
         if so.connect_ex(('127.0.0.1', PORT)) == 0:
             raise RuntimeError(':%d already has' % PORT + ' a listener; stop it first')
-    e = dict(os.environ, KALSHI_CAPTURE_DIR=SEED + '/tape', RYSTIC_REPLAY_METADATA='off', RYSTIC_ADDR=':%d' % PORT)
-    e.update(env or {})
-    args = [BIN] + (['--inject', inject] if inject else [])
-    p = subprocess.Popen(args, env=e, stdout=open(log, 'w'), stderr=subprocess.STDOUT)
+    if RYSTIC:
+        e = dict(os.environ)
+        args = [RYSTIC, 'run', 'kalshi-twin', '--tapes', SEED + '/tape', '--port', str(PORT),
+                '--env', 'RYSTIC_REPLAY_METADATA=' + METADATA] + sum((['--env', f'{k}={v}'] for k, v in (env or {}).items()), [])
+    else:
+        e = dict(os.environ, KALSHI_CAPTURE_DIR=SEED + '/tape', RYSTIC_REPLAY_METADATA=METADATA, RYSTIC_ADDR=':%d' % PORT)
+        e.update(env or {})
+        args = [BIN]
+    args += ['--inject', inject] if inject else []
+    p = subprocess.Popen(args, env=e, stdout=open(log, 'w'), stderr=subprocess.STDOUT, start_new_session=True)
     for _ in range(240):
         try:
             if get('/_replay/status')[0] == 200 and p.poll() is None:
@@ -58,22 +85,38 @@ def boot(log, env=None, inject=None):
 
 
 def stop(p):
-    p.terminate()
+    if p.poll() is not None:
+        return
+    os.killpg(p.pid, signal.SIGTERM)
     try:
         p.wait(20)
     except subprocess.TimeoutExpired:
-        p.kill(); p.wait()
+        os.killpg(p.pid, signal.SIGKILL); p.wait()
+
+
+def tree_stats(pid):
+    """(RSS MB, %CPU) of pid and its descendants: under `rystic run` the twin is the CLI's child."""
+    kids, val = {}, {}
+    for line in subprocess.run(['ps', '-A', '-o', 'pid=,ppid=,rss=,%cpu='], capture_output=True, text=True).stdout.splitlines():
+        f = line.split()
+        if len(f) == 4:
+            kids.setdefault(int(f[1]), []).append(int(f[0])); val[int(f[0])] = (int(f[2]), float(f[3]))
+    if pid not in val:
+        return None, None
+    rss = cpu = 0; todo = [pid]
+    while todo:
+        q = todo.pop(); r, c = val.get(q, (0, 0.0)); rss += r; cpu += c; todo.extend(kids.get(q, []))
+    return rss / 1024, cpu
 
 
 def rss_mb(p):
-    out = subprocess.run(['ps', '-o', 'rss=', '-p', str(p.pid)], capture_output=True, text=True).stdout.strip()
-    return int(out) / 1024 if out else None
+    return tree_stats(p.pid)[0]
 
 
 def start_paused(speed=1, mk=None):
     mk = mk or markets()
     code, body = post('/_replay/start', {"markets": mk, "speed": speed, "rebase": True,
-                                          "checkpoints": [T0_MS + 1]})
+                                          "checkpoints": [CHECKPOINT_MS]})
     assert code == 204, (code, body)
     for _ in range(600):
         st = get('/_replay/status')[1]

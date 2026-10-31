@@ -46,7 +46,7 @@ def dh(d):
     return hash(json.dumps(d, sort_keys=True))
 
 
-MK = sorted(l.strip() for l in open(os.environ['KT_SET']) if l.strip())
+MK = sorted(l.strip() for l in open(os.environ['KT_SET']) if l.strip()) if os.environ.get('KT_SET') else tw.markets()
 PER = json.load(open(os.environ['KT_HIST']))['per_tape']     # ticker -> [lines, deltas, trades]
 EVENTS = json.load(open(os.environ['KT_INJECT']))['events']
 TAPE_AT = {e['id']: iso_ms(e['at']) for e in EVENTS}
@@ -190,8 +190,7 @@ def burst_proc(mids, stop, on, url_base, res_q):
 
 
 def proc_stats(p):
-    out = subprocess.run(['ps', '-o', 'rss=,%cpu=', '-p', str(p.pid)], capture_output=True, text=True).stdout.split()
-    return (int(out[0]) / 1024, float(out[1])) if out else (None, None)
+    return tw.tree_stats(p.pid)
 
 
 def status():
@@ -204,18 +203,25 @@ time.sleep(5)
 note('machine', {'host': os.uname().nodename, 'nproc': os.cpu_count(), 'tapes': len(MK), 'idle_rss_mb': proc_stats(p)[0],
                  'tape_lines': sum(PER[t][0] for t in MK), 'frames': sum(PER[t][1] + PER[t][2] for t in MK), 'index_s': OUT['index_s']})
 
-# test 1: fold
+# test 1: fold. RSS sampled every 1 s for the whole run; peak_rss_mb lands at DONE.
 peak = [0.0]; folding = [True]; samples = []
 def sample_fold():
     t0 = time.time()
-    while folding[0]:
+    while True:
         r = proc_stats(p)[0]
         if r: peak[0] = max(peak[0], r); samples.append([round(time.time() - t0), round(r)])
         time.sleep(1)
 threading.Thread(target=sample_fold, daemon=True).start()
+INJECT_PATH = os.path.abspath(os.environ['KT_INJECT'])
 t = time.time()
 try:
-    c, b = tw.req('POST', '/_replay/start', {"markets": MK, "speed": 1, "rebase": REBASE, "checkpoints": [T0 + 1]}, timeout=LOAD_CAP)
+    c, b = tw.req('POST', '/_replay/prepare', {"markets": MK}, timeout=LOAD_CAP)
+    assert c in (200, 204), (c, b)
+    note('prepare', {'s': round(time.time() - t, 1), 'rss_mb': proc_stats(p)[0], 'peak_rss_mb': peak[0]})
+    body = {"markets": MK, "speed": 1, "rebase": REBASE, "checkpoints": [tw.CHECKPOINT_MS]}
+    if tw.INJECT_MODE == 'start':
+        body['inject'] = INJECT_PATH
+    c, b = tw.req('POST', '/_replay/start', body, timeout=LOAD_CAP)
 except Exception as e:
     folding[0] = False
     note('load_timeout', {'after_s': round(time.time() - t), 'err': repr(e), 'rss_mb': proc_stats(p)[0], 'peak_rss_mb': peak[0], 'rss_samples': samples[::30]})
@@ -237,8 +243,9 @@ if HOLD:
     note('holding', {'file': HOLD, 'rss_mb': proc_stats(p)[0]})
     while not os.path.exists(HOLD): time.sleep(5)
     note('released', {'rss_mb': proc_stats(p)[0]})
-t = time.time(); c, _ = tw.post('/_rystic/inject', json.dumps({'events': tw.shifted_inject(off, events=EVENTS)}).encode())
-note('inject_post', {'code': c, 's': round(time.time() - t, 2), 'events': len(EVENTS), 'offset_ms': off})
+if tw.INJECT_MODE == 'post':
+    t = time.time(); c, _ = tw.post('/_rystic/inject', json.dumps({'events': tw.shifted_inject(off, events=EVENTS)}).encode())
+    note('inject_post', {'code': c, 's': round(time.time() - t, 2), 'events': len(EVENTS), 'offset_ms': off})
 
 SOAK = not WINS
 for wi, (wlo, whi, speed) in enumerate(WINS or [(0, 600, 1.0)]):
@@ -381,4 +388,5 @@ for wi, (wlo, whi, speed) in enumerate(WINS or [(0, 600, 1.0)]):
     W['samp'] = samp[::5] if SOAK else samp
     OUT['windows'].append(W)
     note(f'window{wi}', {k: v for k, v in W.items() if k not in ('samp', 'rss')}, store=False)
+note('peak', {'peak_rss_mb': peak[0], 'rss_samples': samples[::30]})
 print('DONE', file=log, flush=True)
