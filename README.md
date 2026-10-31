@@ -4,7 +4,7 @@ Customer scripts for Rystic simulators, one folder per simulator. Each one also 
 
 | Simulator | Scripts |
 |---|---|
-| kalshi | `check.sh`, `trade-check.sh`, `api-check.py`, `bots/` (simple-bot, balance-watcher, book-reader, random-walker), `recordings/capture-setup.sh`, `loadtest/loadtest.py` |
+| kalshi | `check.sh`, `trade-check.sh`, `api-check.py`, `bots/` (simple-bot, balance-watcher, book-reader, random-walker), `recordings/capture-setup.sh` |
 | github-pulls | `check.sh`, `bots/` (see below) |
 | anthropic, clerk, dropbox, gmail, google-drive, linear, lob, notion, okta, paypal, resend, s3, shopify-storefront, slack, stripe, word | `check.sh` |
 
