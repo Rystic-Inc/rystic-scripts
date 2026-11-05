@@ -24,7 +24,7 @@ fail() {
   exit 1
 }
 
-# The credential, resolved the way the CLI resolves it. The Free and Pro build
+# The credential, resolved the way the CLI resolves it. The Pro build
 # serves under an API key: $RYSTIC_TOKEN, then a token file ($RYSTIC_TOKEN_FILE
 # or the rystic_token secret), then config.json's token, then the key
 # `rystic login rys_…` stored. The Enterprise build reads a license:
