@@ -15,7 +15,7 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -H "Content-Type: application/json
     "asks": [ { "price_dollars": "0.40",
       "resting": [ { "order_id": "seed-maker-1", "remaining_count_fp": "25", "seq": 1 } ] } ] } }
 }')
-[ "$code" = 403 ] && fail "this plan cannot seed (HTTP 403) — trade-check.sh seeds its own book and reads /_rystic/egress, which need Pro or Enterprise; check.sh covers Free"
+[ "$code" = 403 ] && fail "this plan cannot seed (HTTP 403) — trade-check.sh seeds its own book and reads /_rystic/egress, which need Pro or Enterprise; check.sh needs neither"
 case "$code" in 2??) ;; *) fail "seed rejected (HTTP $code)" ;; esac
 
 RESP=$(j -X POST $BASE/trade-api/v2/portfolio/events/orders -d '{

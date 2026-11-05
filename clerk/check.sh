@@ -225,5 +225,5 @@ if [ "${RYSTIC_CHECK_STOP:-0}" = 1 ]; then
 else
   echo "✓ clerk-twin is good to go on http://$ADDR (kill $TWIN_PID to stop)"
   [ "$THROWAWAY" = 0 ] \
-    || echo "note: its browser companion signs with a throwaway key; restart the twin with your own (HOWTO.md, \"The browser companion\") before pointing a site at it"
+    || echo "note: its browser companion signs with a throwaway key; restart the twin with your own (docs/features/browser-companion.md) before pointing a site at it"
 fi

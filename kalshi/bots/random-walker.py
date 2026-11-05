@@ -150,7 +150,7 @@ else:
               f"\n"
               f"Quickest — seed a built-in scenario (no tape needed):\n"
               f'  curl -X POST {BASE}/_rystic/scenario -H \'content-type: application/json\' -d \'{{"name":"tight_book"}}\'\n'
-              f"  ./kalshi-twin --list-scenarios   (what else ships; SCENARIOS.md describes them)\n"
+              f"  ./kalshi-twin --list-scenarios   (what else ships; README.md describes them)\n"
               f"\n"
               f"Or replay a captured market, if you have a tape archive:\n"
               f"  curl {BASE}/_replay/status   (what tape is loaded, if any)\n"
