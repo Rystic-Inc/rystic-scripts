@@ -62,8 +62,7 @@ fi
 
 # A throwaway signing key for clients that need one; the twin accepts anything,
 # so this is a convenience and not part of the check. Skipped where openssl is
-# absent or this directory is not writable — both are true inside the released
-# image, which carries no openssl and installs read-only.
+# absent or this directory is not writable, as in the read-only released image.
 if [ ! -f twin_key.pem ] && command -v openssl > /dev/null 2>&1 && [ -w . ]; then
   openssl genrsa -out twin_key.pem 2048
 fi
