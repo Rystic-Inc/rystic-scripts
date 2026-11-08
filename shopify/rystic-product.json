@@ -1,0 +1,26 @@
+{
+  "product": "shopify-twin",
+  "summary": "A local Shopify store for integration tests: the Admin and Storefront GraphQL APIs, catalog, customers, orders, fulfillment, inventory, content and carts.",
+  "docs": "README.md",
+  "smoke": [
+    "check.sh"
+  ],
+  "features": [
+    {
+      "name": "Prices in a market's currency",
+      "summary": "A market for a country, a price list in its currency attached with catalogCreate, and the prices contextualPricing and Storefront reads under @inContext return for that country."
+    },
+    {
+      "name": "Order history window",
+      "summary": "An Admin token without the read_all_orders grant sees only orders from the last 60 days of the simulator's clock, as in Shopify; bind grants to a token to widen it.",
+      "endpoints": [
+        "POST /_rystic/credentials",
+        "POST /_rystic/clock"
+      ]
+    },
+    {
+      "name": "Storefront carts",
+      "summary": "A shopper's cart on the Storefront API: create it, add and change lines, set a note, attributes, buyer and discount codes, and read it back by its id."
+    }
+  ]
+}
