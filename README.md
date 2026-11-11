@@ -8,7 +8,7 @@ Customer scripts for Rystic simulators, one folder per simulator. Each one also 
 | github-pulls | `check.sh`, `bots/` (see below) |
 | anthropic, clerk, dropbox, gmail, google-drive, jira, linear, lob, notion, okta, paypal, quickbooks, resend, s3, shopify, shopify-storefront, slack, stripe, word | `check.sh` |
 
-`environments/` has example multi-twin stacks: stack file plus the compose file Rystic exports from it.
+`environments/` has example multi-twin stacks: stack file plus the compose file Rystic exports from it. `environments/export-seeds/` is a script that exports your real Clerk, Stripe, Resend and GitHub accounts as seed files.
 
 `check.sh` expects the twin binary in the same folder, so copy it next to your installed twin or run the copy that ships in the archive.
 

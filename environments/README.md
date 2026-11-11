@@ -23,4 +23,6 @@ cp .env.example .env                 # set RYSTIC_LICENSE
 docker compose up
 ```
 
+`export-seeds/` is not a stack: it is a script that writes seed files from your real accounts, for a stack's `seed:` keys. Its own README has the details.
+
 These files pin images by tag. To pin your own build by digest, run `rystic export compose -o .`.
